@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conversor para Markdown</title>
+<style>
+  :root {
+    --bg: #f7f6f3; --panel: #ffffff; --ink: #1f1e1c; --muted: #6b6862; --line: #e4e1da;
+    --accent: #2f5d50; --accent-soft: #e3ece8; --warn: #9a4b1c; --ok: #2f6b3a;
+    --mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #171716; --panel: #201f1d; --ink: #ecebe7; --muted: #a29f97; --line: #34332f;
+      --accent: #7fbfa8; --accent-soft: #24332d; --warn: #e0a070; --ok: #8fd09a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 40px; }
+  header h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  header p { margin: 0 0 20px; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: 380px 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .drop { border: 2px dashed var(--line); border-radius: 10px; padding: 26px 14px; text-align: center;
+    cursor: pointer; transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop strong { display: block; font-size: 16px; margin-bottom: 4px; }
+  .drop span { color: var(--muted); font-size: 13px; }
+  .opts { margin-top: 14px; display: grid; gap: 8px; font-size: 14px; }
+  .opts label { display: flex; gap: 8px; align-items: center; }
+  .opts select { flex: 1; padding: 5px 6px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); }
+  .files { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; }
+  .files li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 10px;
+    border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+  .files .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+  .files .st { color: var(--muted); grid-column: 1 / -1; }
+  .files .st.err { color: var(--warn); } .files .st.done { color: var(--ok); }
+  .files button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 0; }
+  .bar { height: 3px; background: var(--line); border-radius: 2px; grid-column: 1 / -1; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .outhead { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .stats { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .stats b { color: var(--ink); font-weight: 600; }
+  .btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  button.b { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px;
+    padding: 7px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+  button.b:hover:not(:disabled) { border-color: var(--accent); }
+  button.b.primary { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+  button.b:disabled { opacity: .45; cursor: default; }
+  textarea { width: 100%; min-height: 560px; resize: vertical; border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px; font: 13px/1.55 var(--mono); background: var(--bg); color: var(--ink); }
+  .note { font-size: 12px; color: var(--muted); margin-top: 12px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Conversor para Markdown</h1>
+    <p>PDF, imagens com texto e Word (.docx) viram Markdown limpo — menos tokens, leitura mais rápida. Tudo roda no seu navegador; nenhum arquivo sai daqui.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Escolher arquivos">
+        <strong>Solte arquivos aqui</strong>
+        <span>ou clique para escolher · PDF, PNG, JPG, WEBP, DOCX, TXT, HTML<br>Também dá para colar um print (Ctrl+V)</span>
+      </div>
+      <input type="file" id="pick" multiple class="hidden"
+        accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.bmp,.gif,.tif,.tiff,.txt,.md,.html,.htm,application/pdf,image/*">
+
+      <div class="opts">
+        <label>Idioma do OCR
+          <select id="lang">
+            <option value="por+eng">Português + Inglês</option>
+            <option value="por">Português</option>
+            <option value="eng">Inglês</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="optHF" checked> Remover cabeçalhos, rodapés e nº de página (PDF)</label>
+        <label><input type="checkbox" id="optPages"> Marcar quebras de página (PDF)</label>
+        <label><input type="checkbox" id="optForceOCR"> Forçar OCR em PDF (escaneado / texto quebrado)</label>
+        <label><input type="checkbox" id="optTitles" checked> Título com o nome de cada arquivo</label>
+      </div>
+
+      <ul class="files" id="files"></ul>
+    </section>
+
+    <section class="card">
+      <div class="outhead">
+        <div class="stats" id="stats">Nenhum arquivo convertido ainda.</div>
+        <div class="btns">
+          <button class="b" id="clear" disabled>Limpar</button>
+          <button class="b" id="copy" disabled>Copiar</button>
+          <button class="b primary" id="save" disabled>Exportar .md</button>
+        </div>
+      </div>
+      <textarea id="out" spellcheck="false" placeholder="O Markdown aparece aqui. Você pode editar antes de copiar."></textarea>
+      <p class="note">Tokens ≈ caracteres ÷ 4 (estimativa). PDFs com texto são extraídos direto; páginas sem texto passam por OCR automaticamente. Word antigo (.doc) não é suportado — salve como .docx.</p>
+    </section>
+  </div>
+</div>
+
+<script src="vendor/pdf.min.js"></script>
+<script src="vendor/mammoth.browser.min.js"></script>
+<script src="vendor/turndown.js"></script>
+<script src="vendor/turndown-plugin-gfm.js"></script>
+<script src="vendor/tesseract.min.js"></script>
+<script>
+(() => {
+  const abs = p => new URL(p, location.href).href;
+  const $ = id => document.getElementById(id);
+  const out = $("out"), filesEl = $("files"), stats = $("stats");
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = abs("vendor/pdf.worker.min.js");
+
+  // ---------- state ----------
+  const results = []; // {id, name, md}
+  let queue = Promise.resolve();
+  let nextId = 1;
+
+  // ---------- OCR worker (lazy, reused) ----------
+  let ocr = null, ocrLang = null;
+  async function getOCR(onProgress) {
+    const lang = $("lang").value;
+    if (ocr && ocrLang === lang) { ocrProgress = onProgress; return ocr; }
+    if (ocr) { await ocr.terminate(); ocr = null; }
+    ocrProgress = onProgress;
+    const langs = await Promise.all(lang.split("+").map(async code => {
+      if (!langData[code]) langData[code] = new Promise((res, rej) => {
+        const sc = document.createElement("script");
+        sc.src = abs(`vendor/lang/${code}.js`);
+        sc.onload = () => {
+          const b64 = window.__ocrLang[code]; delete window.__ocrLang[code];
+          const bin = atob(b64), u = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+          res(u.buffer);
+        };
+        sc.onerror = () => rej(new Error("falha ao carregar idioma " + code));
+        document.head.appendChild(sc);
+      });
+      return { code, data: new Uint8Array((await langData[code]).slice(0)) };
+    }));
+    ocr = await Tesseract.createWorker(langs, 1, {
+      workerPath: abs("vendor/worker.min.js"),
+      corePath: abs("vendor/"),
+      cacheMethod: "none",
+      logger: m => ocrProgress && ocrProgress(m),
+    });
+    ocrLang = lang;
+    return ocr;
+  }
+  let ocrProgress = null;
+  const langData = {};
+
+  async function ocrImage(src, onProgress) {
+    const w = await getOCR(m => {
+      if (m.status === "recognizing text") onProgress(m.progress, "reconhecendo texto");
+      else if (m.status) onProgress(null, traduz(m.status));
+    });
+    const { data } = await w.recognize(src);
+    return textToMd(data.text || "");
+  }
+  function traduz(s) {
+    return ({ "loading tesseract core": "carregando OCR", "initializing tesseract": "iniciando OCR",
+      "loading language traineddata": "carregando idioma", "initializing api": "preparando OCR" })[s] || s;
+  }
+
+  // ---------- text cleanup shared ----------
+  const BULLET = /^\s*([•●▪◦■□➢►\-–—*·]|\(?\d{1,3}[.)]|\(?[a-zA-Z][.)])\s+/;
+  function joinLines(lines) {
+    let s = "";
+    for (const raw of lines) {
+      const l = raw.trim();
+      if (!l) continue;
+      if (!s) { s = l; continue; }
+      if (/[A-Za-zÀ-ÿ]-$/.test(s) && /^[a-zà-ÿ]/.test(l)) s = s.slice(0, -1) + l;
+      else s += " " + l;
+    }
+    return s.replace(/\s{2,}/g, " ");
+  }
+  function bulletize(line) {
+    const m = line.match(BULLET);
+    if (!m) return null;
+    const mark = m[1];
+    const rest = line.slice(m[0].length);
+    if (/^\(?\d+[.)]$/.test(mark)) return mark.replace(/[()]/g, "").replace(")", ".") + " " + rest;
+    return "- " + rest;
+  }
+  // OCR / plain text → markdown paragraphs
+  function textToMd(text) {
+    const blocks = text.replace(/\r/g, "").split(/\n\s*\n/);
+    const out = [];
+    for (const b of blocks) {
+      const lines = b.split("\n").map(x => x.trim()).filter(Boolean);
+      if (!lines.length) continue;
+      let buf = [];
+      const flush = () => { if (buf.length) { out.push(joinLines(buf)); buf = []; } };
+      for (const l of lines) {
+        const bl = bulletize(l);
+        if (bl) { flush(); out.push(bl); }
+        else if (out.length && /^(- |\d+\. )/.test(out[out.length - 1]) && !buf.length && /^[a-zà-ÿ]/.test(l)) {
+          out[out.length - 1] = joinLines([out[out.length - 1], l]);
+        } else buf.push(l);
+      }
+      flush();
+    }
+    return tidy(out.join("\n\n"));
+  }
+  function tidy(md) {
+    return md
+      .replace(/(^|\n)((?:- |\d+\. ).*)\n\n(?=(?:- |\d+\. ))/g, "$1$2\n") // tighten lists
+      .replace(/(^|\n)((?:- |\d+\. ).*)\n\n(?=(?:- |\d+\. ))/g, "$1$2\n")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  // ---------- PDF ----------
+  async function pdfToMd(file, progress) {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf, isEvalSupported: false, disableFontFace: true }).promise;
+    const n = pdf.numPages;
+    const force = $("optForceOCR").checked;
+    const pages = []; // each: {lines:[{text,size,y,gap}], ocrMd?}
+    const sizeHist = new Map();
+
+    for (let i = 1; i <= n; i++) {
+      progress((i - 1) / n, `lendo página ${i}/${n}`);
+      const page = await pdf.getPage(i);
+      let lines = [];
+      if (!force) {
+        const tc = await page.getTextContent();
+        lines = groupLines(tc.items);
+      }
+      const textLen = lines.reduce((a, l) => a + l.text.replace(/\s/g, "").length, 0);
+      if (force || textLen < 25) {
+        progress((i - 1) / n, `OCR página ${i}/${n}`);
+        const vp = page.getViewport({ scale: 2.2 });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.floor(vp.width); canvas.height = Math.floor(vp.height);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        const md = await ocrImage(canvas, (p, s) => progress((i - 1 + (p || 0)) / n, `OCR página ${i}/${n}${p != null ? " · " + Math.round(p * 100) + "%" : " · " + s}`));
+        pages.push({ lines: [], ocrMd: md });
+        canvas.width = canvas.height = 0;
+      } else {
+        for (const l of lines) sizeHist.set(l.size, (sizeHist.get(l.size) || 0) + l.text.length);
+        pages.push({ lines, H: page.getViewport({ scale: 1 }).height });
+      }
+      page.cleanup();
+    }
+    await pdf.destroy();
+
+    // body font size = most common by characters
+    let body = 10, best = 0;
+    for (const [s, c] of sizeHist) if (c > best) { best = c; body = s; }
+
+    if ($("optHF").checked) stripHeadersFooters(pages);
+
+    const parts = [];
+    pages.forEach((p, idx) => {
+      const md = p.ocrMd != null ? p.ocrMd : linesToMd(p.lines, body);
+      if ($("optPages").checked) parts.push(`<!-- página ${idx + 1} -->\n\n` + md);
+      else parts.push(md);
+    });
+    // merge paragraphs split across pages
+    let md = parts.filter(Boolean).join("\n\n");
+    if (!$("optPages").checked) md = md.replace(/([a-zà-ÿ,;])\n\n([a-zà-ÿ])/g, "$1 $2");
+    return tidy(md);
+  }
+
+  function groupLines(items) {
+    const its = items.filter(it => it.str && it.str.trim() !== "" || (it.str === " ")).map(it => {
+      const t = it.transform;
+      const h = Math.round(Math.hypot(t[2], t[3]) * 2) / 2 || it.height || 10;
+      return { s: it.str, x: t[4], y: t[5], w: it.width, h };
+    }).filter(it => it.s.length);
+    its.sort((a, b) => (b.y - a.y) || (a.x - b.x));
+    const lines = [];
+    for (const it of its) {
+      const L = lines[lines.length - 1];
+      if (L && Math.abs(L.y - it.y) < Math.max(L.h, it.h) * 0.5) L.items.push(it), L.h = Math.max(L.h, it.h);
+      else lines.push({ y: it.y, h: it.h, items: [it] });
+    }
+    const res = [];
+    for (const L of lines) {
+      L.items.sort((a, b) => a.x - b.x);
+      let txt = "", end = null, sizeCount = new Map();
+      for (const it of L.items) {
+        if (end != null) {
+          const gap = it.x - end;
+          if (gap > it.h * 0.15 && !/\s$/.test(txt) && !/^\s/.test(it.s)) txt += gap > it.h * 3 ? "  " : " ";
+        }
+        txt += it.s; end = it.x + it.w;
+        if (it.s.trim()) sizeCount.set(it.h, (sizeCount.get(it.h) || 0) + it.s.length);
+      }
+      let size = L.h, b = 0;
+      for (const [s, c] of sizeCount) if (c > b) { b = c; size = s; }
+      txt = txt.replace(/\s+/g, " ").trim();
+      if (txt) res.push({ text: txt, size, y: L.y });
+    }
+    for (let i = 0; i < res.length; i++) res[i].gap = i ? res[i - 1].y - res[i].y : 0;
+    return res;
+  }
+
+  function stripHeadersFooters(pages) {
+    const textPages = pages.filter(p => p.lines.length);
+    const isPageNum = t => /^(p(á|a)g(ina)?\.?\s*)?\d{1,4}(\s*(\/|de|of)\s*\d{1,4})?$/i.test(t) || /^[-–—]\s*\d{1,4}\s*[-–—]$/.test(t);
+    const norm = t => t.toLowerCase().replace(/\d+/g, "#").replace(/\s+/g, " ").trim();
+    const counts = new Map();
+    for (const p of textPages) {
+      const edge = new Set([...p.lines.slice(0, 2), ...p.lines.slice(-2)].filter(l => l.y > p.H * 0.88 || l.y < p.H * 0.12).map(l => norm(l.text)));
+      for (const k of edge) counts.set(k, (counts.get(k) || 0) + 1);
+    }
+    const min = Math.max(3, Math.ceil(textPages.length * 0.5));
+    for (const p of textPages) {
+      const n = p.lines.length;
+      p.lines = p.lines.filter((l, i) => {
+        const atEdge = (i < 2 || i >= n - 2) && (l.y > p.H * 0.88 || l.y < p.H * 0.12);
+        if (!atEdge) return true;
+        if (isPageNum(l.text)) return false;
+        return !(textPages.length >= 3 && counts.get(norm(l.text)) >= min);
+      });
+      for (let i = 0; i < p.lines.length; i++) p.lines[i].gap = i ? p.lines[i - 1].y - p.lines[i].y : 0;
+    }
+  }
+
+  function linesToMd(lines, body) {
+    if (!lines.length) return "";
+    const gaps = lines.map(l => l.gap).filter(g => g > 0).sort((a, b) => a - b);
+    const typical = gaps.length ? gaps[Math.floor(gaps.length * 0.4)] : body * 1.2;
+    const out = [];
+    let buf = [], bufIsList = false;
+    const flush = () => {
+      if (!buf.length) return;
+      const t = joinLines(buf);
+      out.push(bufIsList ? bulletize(t) || t : t);
+      buf = []; bufIsList = false;
+    };
+    let prevHeading = null;
+    for (const l of lines) {
+      const r = l.size / body;
+      const level = l.text.length < 160 ? (r >= 1.6 ? 1 : r >= 1.3 ? 2 : r >= 1.12 ? 3 : 0) : 0;
+      if (level) {
+        flush();
+        // continuation of a multi-line heading
+        if (prevHeading && prevHeading.level === level && l.gap < l.size * 1.8) {
+          out[out.length - 1] += " " + l.text;
+        } else {
+          out.push("#".repeat(level) + " " + l.text);
+          prevHeading = { level };
+        }
+        continue;
+      }
+      prevHeading = null;
+      const newPara = l.gap > typical * 1.45 || l.gap < 0;
+      if (BULLET.test(l.text)) { flush(); buf = [l.text]; bufIsList = true; continue; }
+      if (newPara) flush();
+      buf.push(l.text);
+    }
+    flush();
+    return tidy(out.join("\n\n"));
+  }
+
+  // ---------- DOCX / HTML ----------
+  function turndown() {
+    const td = new TurndownService({ headingStyle: "atx", bulletListMarker: "-", codeBlockStyle: "fenced", emDelimiter: "*" });
+    td.use(turndownPluginGfm.gfm);
+    td.addRule("noImages", { filter: "img", replacement: (_, n) => n.getAttribute("alt") ? `[imagem: ${n.getAttribute("alt")}]` : "" });
+    td.addRule("emptyLinks", { filter: n => n.nodeName === "A" && !n.textContent.trim(), replacement: () => "" });
+    return td;
+  }
+  async function docxToMd(file) {
+    const buf = await file.arrayBuffer();
+    const r = await mammoth.convertToHtml({ arrayBuffer: buf }, {
+      convertImage: mammoth.images.imgElement(() => Promise.resolve({ src: "" })),
+    });
+    // first row of tables → header so GFM tables render
+    const doc = new DOMParser().parseFromString(r.value, "text/html");
+    doc.querySelectorAll("table").forEach(t => {
+      const first = t.querySelector("tr");
+      if (first && !t.querySelector("th")) first.querySelectorAll("td").forEach(td => {
+        const th = doc.createElement("th"); th.innerHTML = td.innerHTML; td.replaceWith(th);
+      });
+      t.querySelectorAll("td p, th p").forEach(p => p.replaceWith(...p.childNodes, doc.createTextNode(" ")));
+    });
+    return tidy(turndown().turndown(doc.body.innerHTML).replace(/\\([-.])/g, "$1"));
+  }
+  async function htmlToMd(file) {
+    const doc = new DOMParser().parseFromString(await file.text(), "text/html");
+    doc.querySelectorAll("script,style,noscript,nav,footer,svg").forEach(e => e.remove());
+    return tidy(turndown().turndown(doc.body.innerHTML));
+  }
+
+  // ---------- pipeline ----------
+  function kind(file) {
+    const n = file.name.toLowerCase();
+    if (file.type === "application/pdf" || n.endsWith(".pdf")) return "pdf";
+    if (n.endsWith(".docx")) return "docx";
+    if (n.endsWith(".doc")) return "doc";
+    if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|bmp|gif|tiff?)$/.test(n)) return "img";
+    if (/\.html?$/.test(n)) return "html";
+    if (/\.(txt|md|markdown|csv)$/.test(n) || file.type.startsWith("text/")) return "txt";
+    return null;
+  }
+
+  function addFiles(list) {
+    for (const file of list) {
+      const id = nextId++;
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="name"></span><button title="Remover do resultado">remover</button><div class="bar"><i></i></div><span class="st">na fila</span>`;
+      li.querySelector(".name").textContent = file.name;
+      const st = li.querySelector(".st"), bar = li.querySelector(".bar i");
+      li.querySelector("button").onclick = () => {
+        const i = results.findIndex(r => r.id === id);
+        if (i >= 0) results.splice(i, 1);
+        li.remove(); render();
+      };
+      filesEl.appendChild(li);
+      const progress = (p, msg) => { if (p != null) bar.style.width = Math.round(p * 100) + "%"; if (msg) st.textContent = msg; };
+      queue = queue.then(() => convert(file, id, progress, st, bar));
+    }
+  }
+
+  async function convert(file, id, progress, st, bar) {
+    const k = kind(file);
+    const t0 = performance.now();
+    try {
+      let md;
+      progress(0.02, "convertendo…");
+      if (k === "pdf") md = await pdfToMd(file, progress);
+      else if (k === "docx") md = await docxToMd(file);
+      else if (k === "img") md = await ocrImage(file, (p, s) => progress(p, p != null ? `OCR · ${Math.round(p * 100)}%` : s));
+      else if (k === "html") md = await htmlToMd(file);
+      else if (k === "txt") md = file.name.toLowerCase().endsWith(".md") ? (await file.text()).trim() : textToMd(await file.text());
+      else if (k === "doc") throw new Error("Word antigo (.doc) não é suportado — salve como .docx");
+      else throw new Error("formato não suportado");
+      if (!md.trim()) md = "_(nenhum texto encontrado)_";
+      results.push({ id, name: file.name, md, size: file.size });
+      results.sort((a, b) => a.id - b.id);
+      bar.style.width = "100%";
+      const secs = ((performance.now() - t0) / 1000).toFixed(1);
+      st.textContent = `pronto · ${fmt(md.length)} caracteres · ~${fmt(Math.ceil(md.length / 4))} tokens · ${secs}s`;
+      st.className = "st done";
+      render();
+    } catch (e) {
+      console.error(e);
+      st.textContent = "erro: " + (e && e.message || e);
+      st.className = "st err";
+    }
+  }
+
+  const fmt = n => n.toLocaleString("pt-BR");
+  function build() {
+    const titles = $("optTitles").checked;
+    return results.map(r => titles ? `# ${r.name}\n\n${r.md}` : r.md).join("\n\n---\n\n");
+  }
+  function render() {
+    out.value = build();
+    updateStats();
+  }
+  function updateStats() {
+    const md = out.value;
+    const has = md.trim().length > 0;
+    $("copy").disabled = $("clear").disabled = $("save").disabled = !has;
+    if (!has) { stats.textContent = "Nenhum arquivo convertido ainda."; return; }
+    const words = (md.match(/\S+/g) || []).length;
+    const bytes = results.reduce((a, r) => a + r.size, 0);
+    stats.innerHTML = `<b>${fmt(Math.ceil(md.length / 4))}</b> tokens (aprox.) · ${fmt(words)} palavras · ${results.length} arquivo(s)` +
+      (bytes ? ` · ${kb(bytes)} → ${kb(new Blob([md]).size)}` : "");
+  }
+  const kb = b => b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
+
+  out.addEventListener("input", updateStats);
+  $("optTitles").addEventListener("change", render);
+
+  // ---------- inputs ----------
+  const drop = $("drop"), pick = $("pick");
+  drop.onclick = () => pick.click();
+  drop.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick.click(); } };
+  pick.onchange = () => { addFiles([...pick.files]); pick.value = ""; };
+  ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => addFiles([...e.dataTransfer.files]));
+  document.addEventListener("dragover", e => e.preventDefault());
+  document.addEventListener("drop", e => { if (!drop.contains(e.target)) { e.preventDefault(); addFiles([...e.dataTransfer.files]); } });
+  document.addEventListener("paste", e => {
+    if (e.target === out) return;
+    const files = [...(e.clipboardData?.files || [])];
+    if (files.length) {
+      e.preventDefault();
+      addFiles(files.map((f, i) => f.name && f.name !== "image.png" ? f :
+        new File([f], `print-${new Date().toLocaleTimeString("pt-BR").replace(/:/g, "")}${i ? "-" + i : ""}.png`, { type: f.type })));
+    }
+  });
+
+  // ---------- output actions ----------
+  $("copy").onclick = async () => {
+    const b = $("copy");
+    try { await navigator.clipboard.writeText(out.value); b.textContent = "Copiado ✓"; }
+    catch { out.select(); document.execCommand("copy"); b.textContent = "Copiado ✓"; }
+    setTimeout(() => b.textContent = "Copiar", 1600);
+  };
+  $("clear").onclick = () => { results.length = 0; filesEl.innerHTML = ""; render(); };
+
+  let downloads = null;
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("downloads").then(d => { downloads = d; }).catch(() => {});
+  }
+  $("save").onclick = async () => {
+    const name = results.length === 1 ? results[0].name.replace(/\.[^.]+$/, "") + ".md" : "convertido.md";
+    if (downloads) {
+      try { await downloads.save({ filename: name, data: out.value }); return; }
+      catch (e) { if (e && e.code === "declined") return; }
+    }
+    // fallback: download direto (funciona fora do visualizador do Claude)
+    try {
+      const url = URL.createObjectURL(new Blob([out.value], { type: "text/markdown;charset=utf-8" }));
+      const a = Object.assign(document.createElement("a"), { href: url, download: name });
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch { stats.textContent = "Não foi possível exportar aqui — use Copiar."; }
+  };
+})();
+</script>
+</body>
+</html>
