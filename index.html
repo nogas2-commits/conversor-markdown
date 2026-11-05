@@ -109,6 +109,7 @@
 <script src="vendor/turndown.js"></script>
 <script src="vendor/turndown-plugin-gfm.js"></script>
 <script src="vendor/tesseract.min.js"></script>
+<script src="vendor/table-ocr.js"></script>
 <script>
 (() => {
   const abs = p => new URL(p, location.href).href;
@@ -161,8 +162,32 @@
       if (m.status === "recognizing text") onProgress(m.progress, "reconhecendo texto");
       else if (m.status) onProgress(null, traduz(m.status));
     });
-    const { data } = await w.recognize(src);
-    return textToMd(data.text || "");
+    // amplia, apaga linhas de grade/marcas coloridas e detecta tabela
+    const bmp = src instanceof HTMLCanvasElement ? src : await createImageBitmap(src);
+    const sc = TableOCR.suggestScale(bmp.width, bmp.height);
+    const cv = document.createElement("canvas");
+    cv.width = Math.round(bmp.width * sc); cv.height = Math.round(bmp.height * sc);
+    const cx = cv.getContext("2d", { willReadFrequently: true });
+    cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height);
+    cx.imageSmoothingQuality = "high";
+    cx.drawImage(bmp, 0, 0, cv.width, cv.height);
+    if (bmp.close) bmp.close();
+    const id = cx.getImageData(0, 0, cv.width, cv.height);
+    const grid = TableOCR.analyze(id);
+    cx.putImageData(id, 0, 0);
+    const hasGrid = grid.hs.length >= 2 && grid.vs.length >= 2;
+    try {
+      await w.setParameters({ tessedit_pageseg_mode: hasGrid ? "11" : "3", preserve_interword_spaces: "1" });
+      const { data } = await w.recognize(cv, {}, { text: true, blocks: true });
+      const words = TableOCR.wordsFrom(data);
+      const md = (hasGrid && TableOCR.gridToMd(words, grid)) || TableOCR.alignedToMd(words);
+      if (md) return md;
+      if (hasGrid) {
+        await w.setParameters({ tessedit_pageseg_mode: "3" });
+        return textToMd((await w.recognize(cv)).data.text || "");
+      }
+      return textToMd(data.text || "");
+    } finally { cv.width = cv.height = 0; }
   }
   function traduz(s) {
     return ({ "loading tesseract core": "carregando OCR", "initializing tesseract": "iniciando OCR",
@@ -239,7 +264,7 @@
       const textLen = lines.reduce((a, l) => a + l.text.replace(/\s/g, "").length, 0);
       if (force || textLen < 25) {
         progress((i - 1) / n, `OCR página ${i}/${n}`);
-        const vp = page.getViewport({ scale: 2.2 });
+        const vp = page.getViewport({ scale: Math.min(4, 2200 / page.getViewport({ scale: 1 }).width) });
         const canvas = document.createElement("canvas");
         canvas.width = Math.floor(vp.width); canvas.height = Math.floor(vp.height);
         const ctx = canvas.getContext("2d");
