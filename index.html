@@ -56,6 +56,19 @@
   .hidden { display: none !important; }
   .ver { margin-top: 18px; text-align: center; font-size: 12px; color: var(--muted); }
   .ver strong { color: var(--ink); font-weight: 600; }
+  .ver a { color: var(--accent); }
+  dialog.termos { max-width: 760px; width: calc(100% - 32px); max-height: calc(100vh - 48px); border: 1px solid var(--line);
+    border-radius: 12px; padding: 0; background: var(--panel); color: var(--ink); }
+  dialog.termos::backdrop { background: rgba(0,0,0,.45); }
+  .termos .tb { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .termos .tb h2 { font-size: 16px; margin: 0; }
+  .termos .tx { padding: 4px 18px 18px; font-size: 14px; line-height: 1.55; }
+  .termos .tx h3 { font-size: 14px; margin: 18px 0 4px; }
+  .termos .tx p, .termos .tx ul { margin: 4px 0; }
+  .termos .tx table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 6px 0; }
+  .termos .tx th, .termos .tx td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
+  .termos .tx a { color: var(--accent); word-break: break-word; }
 </style>
 </head>
 <body>
@@ -104,8 +117,69 @@
       <p class="note">Tokens ≈ caracteres ÷ 4 (estimativa). PDFs com texto são extraídos direto; páginas sem texto passam por OCR automaticamente. Word antigo (.doc) não é suportado — salve como .docx.</p>
     </section>
   </div>
-  <footer class="ver">Conversor para Markdown · <strong>versão 1.4</strong> · atualizado em 19/11/2026 · tabelas de relatórios em PDF</footer>
+  <footer class="ver">Conversor para Markdown · <strong>versão 1.5</strong> · atualizado em 19/11/2026 · termos de uso e privacidade<br>
+    © 2026 E-VERSATIL ASSESSORIA TREINAMENTOS E EVENTOS LTDA · <a href="#termos" id="abrirTermos">Termos e privacidade</a></footer>
 </div>
+
+<dialog class="termos" id="termos" aria-labelledby="termosTit">
+  <div class="tb"><h2 id="termosTit">Termos de uso e privacidade</h2><button class="b" id="fecharTermos">Fechar</button></div>
+  <div class="tx">
+    <p>Última atualização: 19/11/2026 (versão 1.5). Responsável: <strong>E-VERSATIL ASSESSORIA TREINAMENTOS E EVENTOS LTDA</strong> ("nós").</p>
+    <h3>1. O que é</h3>
+    <p>O Conversor para Markdown é uma ferramenta gratuita que transforma arquivos PDF, Word (.docx) e imagens com texto em Markdown. Toda a conversão acontece no seu próprio navegador.</p>
+    <h3>2. Aceite</h3>
+    <p>Ao usar o conversor, você concorda com estes termos. Se não concordar, não use.</p>
+    <h3>3. Uso gratuito e sem garantia</h3>
+    <p>O conversor é oferecido gratuitamente, <strong>no estado em que se encontra</strong>, sem garantia de qualquer tipo. Não garantimos que ele funcione sem interrupções, que esteja disponível em todo momento ou que sirva para uma finalidade específica.</p>
+    <h3>4. O resultado pode conter erros: confira sempre</h3>
+    <p>A leitura de PDFs, tabelas e imagens (OCR) é automática e <strong>pode trocar, omitir ou desalinhar letras, números, vírgulas, colunas e linhas</strong>. Antes de usar o resultado, confira-o com o arquivo original, principalmente números, valores, datas e tabelas.</p>
+    <p>O resultado <strong>não deve ser a única base</strong> para decisões financeiras, contábeis, fiscais, jurídicas, médicas ou qualquer outra decisão importante.</p>
+    <h3>5. Limitação de responsabilidade</h3>
+    <p>Na máxima extensão permitida pela legislação brasileira, não respondemos por perdas, danos, lucros cessantes ou prejuízos de qualquer natureza decorrentes do uso ou da impossibilidade de uso do conversor, nem por erros no conteúdo convertido.</p>
+    <h3>6. Sua responsabilidade</h3>
+    <p>Você é responsável:</p>
+    <ul>
+      <li>pelos arquivos que converte, inclusive por ter o direito de usá-los;</li>
+      <li>pelos dados pessoais de terceiros que esses arquivos contenham, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018);</li>
+      <li>pelo uso que fizer do resultado.</li>
+    </ul>
+    <p>É proibido usar o conversor para fins ilegais ou para violar direitos de terceiros.</p>
+    <h3>7. Privacidade</h3>
+    <ul>
+      <li><strong>Seus arquivos não saem do seu computador.</strong> A conversão roda no navegador; nada é enviado para nós nem para terceiros, e nada fica guardado depois que você fecha a página.</li>
+      <li><strong>Não coletamos dados pessoais.</strong> O conversor não pede cadastro e não usa cookies, rastreadores ou ferramentas de estatística.</li>
+      <li><strong>Hospedagem.</strong> A página é hospedada no GitHub Pages (GitHub, Inc.), que pode registrar dados técnicos de acesso, como endereço IP, para segurança e funcionamento do serviço. Esse tratamento segue a <a href="https://docs.github.com/pt/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">política de privacidade do GitHub</a>.</li>
+    </ul>
+    <h3>8. Código e licença</h3>
+    <p>O código do conversor é aberto, sob a licença MIT, © 2026 E-VERSATIL ASSESSORIA TREINAMENTOS E EVENTOS LTDA. A licença permite usar, copiar e modificar o código, desde que o aviso de copyright seja mantido, e também afasta qualquer garantia e responsabilidade dos autores.</p>
+    <h3>9. Componentes de terceiros</h3>
+    <table>
+      <tr><th>Componente</th><th>Uso</th><th>Licença</th></tr>
+      <tr><td>pdf.js (Mozilla)</td><td>leitura de PDF</td><td>Apache 2.0</td></tr>
+      <tr><td>tesseract.js e tesseract.js-core</td><td>OCR de imagens</td><td>Apache 2.0</td></tr>
+      <tr><td>Tesseract OCR e dados de idioma (por, eng)</td><td>OCR de imagens</td><td>Apache 2.0</td></tr>
+      <tr><td>mammoth.js</td><td>leitura de Word</td><td>BSD 2-Clause</td></tr>
+      <tr><td>Turndown e turndown-plugin-gfm</td><td>conversão para Markdown</td><td>MIT</td></tr>
+    </table>
+    <p>Textos das licenças: <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a>, <a href="https://opensource.org/license/bsd-2-clause" target="_blank" rel="noopener">BSD 2-Clause</a> e <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT</a>.</p>
+    <h3>10. Alterações</h3>
+    <p>Podemos alterar o conversor e estes termos a qualquer momento. A versão e a data em vigor aparecem no topo deste texto e no rodapé do site.</p>
+    <h3>11. Lei aplicável</h3>
+    <p>Estes termos seguem a legislação brasileira.</p>
+    <h3>12. Contato</h3>
+    <p>Dúvidas, problemas ou solicitações: <a href="https://github.com/nogas2-commits/conversor-markdown/issues" target="_blank" rel="noopener">github.com/nogas2-commits/conversor-markdown/issues</a></p>
+  </div>
+</dialog>
+<script>
+(() => {
+  const d = document.getElementById("termos");
+  const abrir = () => { if (!d.open) d.showModal(); d.scrollTop = 0; };
+  document.getElementById("abrirTermos").addEventListener("click", e => { e.preventDefault(); abrir(); });
+  document.getElementById("fecharTermos").addEventListener("click", () => d.close());
+  d.addEventListener("click", e => { if (e.target === d) d.close(); });
+  if (location.hash === "#termos") abrir();
+})();
+</script>
 
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/mammoth.browser.min.js"></script>
