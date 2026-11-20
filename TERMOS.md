@@ -1,12 +1,12 @@
 # Conversor para Markdown: termos de uso e privacidade
 
-Última atualização: 19/11/2026 (versão 1.5)
+Última atualização: 20/11/2026 (versão 1.6)
 
 Responsável: **E-VERSATIL ASSESSORIA TREINAMENTOS E EVENTOS LTDA** ("nós").
 
 ## 1. O que é
 
-O Conversor para Markdown é uma ferramenta gratuita que transforma arquivos PDF, Word (.docx) e imagens com texto em Markdown. Toda a conversão acontece no seu próprio navegador.
+O Conversor para Markdown é uma ferramenta gratuita que transforma arquivos PDF, Word (.docx), planilhas (.xlsx, .csv) e imagens com texto em Markdown. Toda a conversão acontece no seu próprio navegador.
 
 ## 2. Aceite
 
@@ -56,6 +56,7 @@ O conversor usa as bibliotecas abaixo, cada uma com sua própria licença:
 | tesseract.js e tesseract.js-core | OCR de imagens | Apache 2.0 |
 | Tesseract OCR e dados de idioma (por, eng) | OCR de imagens | Apache 2.0 |
 | mammoth.js | leitura de Word | BSD 2-Clause |
+| SheetJS Community Edition | leitura de planilhas | Apache 2.0 |
 | Turndown e turndown-plugin-gfm | conversão para Markdown | MIT |
 
 Textos das licenças: Apache 2.0 em https://www.apache.org/licenses/LICENSE-2.0 , BSD 2-Clause em https://opensource.org/license/bsd-2-clause e MIT em https://opensource.org/license/mit .

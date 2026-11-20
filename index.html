@@ -75,17 +75,17 @@
 <div class="wrap">
   <header>
     <h1>Conversor para Markdown</h1>
-    <p>PDF, imagens com texto e Word (.docx) viram Markdown limpo — menos tokens, leitura mais rápida. Tudo roda no seu navegador; nenhum arquivo sai daqui.</p>
+    <p>PDF, imagens com texto, Word (.docx) e planilhas (.xlsx, .csv) viram Markdown limpo — menos tokens, leitura mais rápida. Tudo roda no seu navegador; nenhum arquivo sai daqui.</p>
   </header>
 
   <div class="grid">
     <section class="card">
       <div class="drop" id="drop" tabindex="0" role="button" aria-label="Escolher arquivos">
         <strong>Solte arquivos aqui</strong>
-        <span>ou clique para escolher · PDF, PNG, JPG, WEBP, DOCX, TXT, HTML<br>Também dá para colar um print (Ctrl+V)</span>
+        <span>ou clique para escolher · PDF, PNG, JPG, WEBP, DOCX, XLSX, CSV, TXT, HTML<br>Também dá para colar um print (Ctrl+V)</span>
       </div>
       <input type="file" id="pick" multiple class="hidden"
-        accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.bmp,.gif,.tif,.tiff,.txt,.md,.html,.htm,application/pdf,image/*">
+        accept=".pdf,.docx,.xlsx,.xlsm,.xlsb,.xls,.ods,.csv,.png,.jpg,.jpeg,.webp,.bmp,.gif,.tif,.tiff,.txt,.md,.html,.htm,application/pdf,image/*">
 
       <div class="opts">
         <label>Idioma do OCR
@@ -117,16 +117,16 @@
       <p class="note">Tokens ≈ caracteres ÷ 4 (estimativa). PDFs com texto são extraídos direto; páginas sem texto passam por OCR automaticamente. Word antigo (.doc) não é suportado — salve como .docx.</p>
     </section>
   </div>
-  <footer class="ver">Conversor para Markdown · <strong>versão 1.5</strong> · atualizado em 19/11/2026 · termos de uso e privacidade<br>
+  <footer class="ver">Conversor para Markdown · <strong>versão 1.6</strong> · atualizado em 20/11/2026 · planilhas (.xlsx, .csv) e tabelas com cabeçalho escuro<br>
     © 2026 E-VERSATIL ASSESSORIA TREINAMENTOS E EVENTOS LTDA · <a href="#termos" id="abrirTermos">Termos e privacidade</a></footer>
 </div>
 
 <dialog class="termos" id="termos" aria-labelledby="termosTit">
   <div class="tb"><h2 id="termosTit">Termos de uso e privacidade</h2><button class="b" id="fecharTermos">Fechar</button></div>
   <div class="tx">
-    <p>Última atualização: 19/11/2026 (versão 1.5). Responsável: <strong>E-VERSATIL ASSESSORIA TREINAMENTOS E EVENTOS LTDA</strong> ("nós").</p>
+    <p>Última atualização: 20/11/2026 (versão 1.6). Responsável: <strong>E-VERSATIL ASSESSORIA TREINAMENTOS E EVENTOS LTDA</strong> ("nós").</p>
     <h3>1. O que é</h3>
-    <p>O Conversor para Markdown é uma ferramenta gratuita que transforma arquivos PDF, Word (.docx) e imagens com texto em Markdown. Toda a conversão acontece no seu próprio navegador.</p>
+    <p>O Conversor para Markdown é uma ferramenta gratuita que transforma arquivos PDF, Word (.docx), planilhas (.xlsx, .csv) e imagens com texto em Markdown. Toda a conversão acontece no seu próprio navegador.</p>
     <h3>2. Aceite</h3>
     <p>Ao usar o conversor, você concorda com estes termos. Se não concordar, não use.</p>
     <h3>3. Uso gratuito e sem garantia</h3>
@@ -159,6 +159,7 @@
       <tr><td>tesseract.js e tesseract.js-core</td><td>OCR de imagens</td><td>Apache 2.0</td></tr>
       <tr><td>Tesseract OCR e dados de idioma (por, eng)</td><td>OCR de imagens</td><td>Apache 2.0</td></tr>
       <tr><td>mammoth.js</td><td>leitura de Word</td><td>BSD 2-Clause</td></tr>
+      <tr><td>SheetJS Community Edition</td><td>leitura de planilhas</td><td>Apache 2.0</td></tr>
       <tr><td>Turndown e turndown-plugin-gfm</td><td>conversão para Markdown</td><td>MIT</td></tr>
     </table>
     <p>Textos das licenças: <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache 2.0</a>, <a href="https://opensource.org/license/bsd-2-clause" target="_blank" rel="noopener">BSD 2-Clause</a> e <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT</a>.</p>
@@ -206,14 +207,49 @@
   function analyze(img) {
     const { width: W, height: H, data } = img;
     const dark = new Uint8Array(W * H);
-    for (let i = 0, p = 0; i < W * H; i++, p += 4) {
-      const r = data[p], g = data[p + 1], b = data[p + 2];
-      const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-      if (mx - mn > 35) { data[p] = data[p + 1] = data[p + 2] = 255; continue; } // marcas coloridas (ex.: triângulo verde do Excel)
-      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-      dark[i] = gray < 205 ? 1 : 0; // linhas finas ficam cinza-claro depois de ampliadas
-    }
     const unit = Math.max(1, W / 900); // ~1 em prints normais; cresce com a ampliação
+    const mark = () => {
+      for (let i = 0, p = 0; i < W * H; i++, p += 4) {
+        const r = data[p], g = data[p + 1], b = data[p + 2];
+        const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+        if (mx - mn > 35) { data[p] = data[p + 1] = data[p + 2] = 255; dark[i] = 0; continue; } // marcas coloridas claras (ex.: triângulo verde do Excel)
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        dark[i] = gray < 205 ? 1 : 0; // linhas finas ficam cinza-claro depois de ampliadas
+      }
+    };
+    mark();
+    // faixas escuras com texto claro (cabeçalho/título em fundo preto ou colorido): inverte para texto escuro em fundo branco
+    const bands = [];
+    {
+      const rowDark = new Float32Array(H);
+      for (let y = 0; y < H; y++) { let c = 0; for (let x = 0; x < W; x++) c += dark[y * W + x]; rowDark[y] = c / W; }
+      const minBand = Math.round(12 * unit);
+      // bloco de linhas com bastante escuro (as linhas com letras brancas têm menos escuro, mas não pouco);
+      // é faixa se for alto o bastante e escuro em média
+      for (let y = 0; y < H;) {
+        if (rowDark[y] < 0.15) { y++; continue; }
+        let e = y, sum = 0; while (e < H && rowDark[e] >= 0.15) sum += rowDark[e++];
+        if (e - y >= minBand && sum / (e - y) >= 0.4) {
+          // extensão horizontal da faixa: colunas majoritariamente escuras
+          let x0 = W, x1 = -1;
+          for (let x = 0; x < W; x++) { let c = 0; for (let yy = y; yy < e; yy++) c += dark[yy * W + x]; if (c >= (e - y) * 0.6) { if (x < x0) x0 = x; x1 = x; } }
+          // faixa "limpa": quase só fundo escuro uniforme e letra clara (foto tem tons intermediários)
+          let ok = 0, n = 0;
+          if (x1 > x0) for (let yy = y; yy < e; yy += 2) for (let x = x0; x <= x1; x += 2) {
+            const p = (yy * W + x) * 4, gr = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
+            n++; if (gr < 90 || gr > 170) ok++;
+          }
+          if (x1 > x0 && ok >= n * 0.85) bands.push({ y0: y, y1: e, x0, x1 });
+        }
+        y = e;
+      }
+      for (const b of bands) for (let y = b.y0; y < b.y1; y++) for (let x = b.x0; x <= b.x1; x++) {
+        // inverte e binariza: fundo (escuro ou cinza) vira branco, letra clara vira preta
+        const p = (y * W + x) * 4, gr = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
+        data[p] = data[p + 1] = data[p + 2] = gr > 140 ? 0 : 255;
+      }
+      if (bands.length) mark();
+    }
     const minH = Math.round(Math.max(40 * unit, W * 0.06));
     const minV = Math.round(22 * unit);
 
@@ -221,31 +257,66 @@
     const hRows = [];
     const hRuns = [];
     for (let y = 0; y < H; y++) {
-      let run = 0, total = 0; const runs = [];
+      let run = 0, total = 0, maxRun = 0; const runs = [];
       for (let x = 0; x <= W; x++) {
         if (x < W && dark[y * W + x]) run++;
-        else { if (run >= minH) { total += run; runs.push([x - run, x]); } run = 0; }
+        else { if (run >= minH) { total += run; maxRun = Math.max(maxRun, run); runs.push([x - run, x]); } run = 0; }
       }
+      // dentro de faixa invertida, letras grossas grudadas não são linha: exige traço de meia largura
+      const bd = bands.find(b => y > b.y0 + 2 && y < b.y1 - 2);
+      if (bd && maxRun < (bd.x1 - bd.x0) * 0.5) continue;
       if (total >= W * 0.2) { hRows.push(y); hRuns.push(runs); }
     }
     // linhas verticais
     const vCols = [];
     const vRuns = [];
+    const inBandY = new Uint8Array(H);
+    for (const b of bands) for (let y = Math.max(0, b.y0 - 2); y < Math.min(H, b.y1 + 2); y++) inBandY[y] = 1;
     for (let x = 0; x < W; x++) {
       let run = 0, total = 0; const runs = [];
       for (let y = 0; y <= H; y++) {
-        if (y < H && dark[y * W + x]) run++;
+        if (y < H && dark[y * W + x] && !inBandY[y]) run++;
         else { if (run >= minV) { total += run; runs.push([y - run, y]); } run = 0; }
       }
       if (total >= minV) { vCols.push(x); vRuns.push(runs); }
     }
     const group = (arr) => { const out = []; for (const v of arr) { const g = out[out.length - 1]; if (g && v - g.end <= 2) g.end = v; else out.push({ start: v, end: v }); } return out.map(g => Math.round((g.start + g.end) / 2)); };
     let hs = group(hRows), vs = group(vCols);
+    const realH = hs.length; // linhas desenhadas (sem contar bordas de faixa)
+    // bordas das faixas invertidas viram linhas da grade (separam título/cabeçalho das linhas de dados)
+    if (bands.length) {
+      for (const b of bands) {
+        const ys = [b.y0, b.y1];
+        // separa as linhas de texto dentro da faixa (ex.: título em cima, cabeçalho embaixo)
+        const runsY = []; let st = -1;
+        for (let y = b.y0; y <= b.y1; y++) {
+          let c = 0; if (y < b.y1) for (let x = b.x0; x <= b.x1; x++) c += dark[y * W + x];
+          const ink = y < b.y1 && c > (b.x1 - b.x0) * 0.01 && c < (b.x1 - b.x0) * 0.9;
+          if (ink && st < 0) st = y; else if (!ink && st >= 0) { if (y - st >= 4 * unit) runsY.push([st, y]); st = -1; }
+        }
+        for (let k = 1; k < runsY.length; k++) ys.push(Math.round((runsY[k - 1][1] + runsY[k][0]) / 2));
+        for (const y of ys) if (!hs.some(h => Math.abs(h - y) <= 4 * unit)) hs.push(y);
+      }
+      hs.sort((a, b) => a - b);
+    }
     // verticais só contam dentro da área de uma tabela (evita apagar hastes de letras grandes)
     let top = 0, bot = 0;
-    if (hs.length >= 2) {
+    if (hs.length >= 2 && realH >= 2) {
       top = hs[0]; bot = hs[hs.length - 1];
       vs = vs.filter(x => coverV(x, top, bot) > (bot - top) * 0.15);
+      // linha de grade atravessa a célula quase toda; dígitos centralizados alinhados não
+      const gaps = hs.slice(1).map((h, i) => h - hs[i]).filter(d => d > 8 * unit);
+      const minCell = gaps.length ? median(gaps) * 0.6 : 0;
+      if (minCell > minV) vs = vs.filter(x => vCols.some((cx, k) => Math.abs(cx - x) <= 3 && vRuns[k].some(([a, b]) => b - a >= minCell)));
+      // linha de tabela atravessa a maioria das linhas da tabela (borda de foto não)
+      const rowsY = [];
+      for (let i = 1; i < hs.length; i++) {
+        const a = hs[i - 1], b = hs[i];
+        if (b - a <= 8 * unit || bands.some(bd => (a + b) / 2 > bd.y0 && (a + b) / 2 < bd.y1)) continue;
+        if (blankRows(a + 3, b - 3)) continue;
+        rowsY.push([a, b]);
+      }
+      if (rowsY.length >= 2) vs = vs.filter(x => rowsY.filter(([a, b]) => coverV(x, a + 2, b - 2) >= (b - a - 4) * 0.6).length >= rowsY.length * 0.5);
     } else vs = [];
     if (vs.length < 2) vs = [];
 
@@ -256,12 +327,16 @@
       if (!vs.some(v => Math.abs(v - x) <= 3)) return;
       vRuns[k].forEach(([a, b]) => { for (let y = Math.max(a, top - 3); y < Math.min(b, bot + 3); y++) { erase(x - 1, y); erase(x, y); erase(x + 1, y); } });
     });
+    function blankRows(y0, y1) { for (let y = Math.max(0, Math.round(y0)); y < Math.min(H, Math.round(y1)); y++) { let c = 0; for (let x = 0; x < W; x++) c += dark[y * W + x]; if (c > W * 0.01) return false; } return true; }
     function coverV(x, y0, y1) { let c = 0; for (let y = Math.max(0, y0); y < Math.min(H, y1); y++) { let d = 0; for (let dx = -2; dx <= 2; dx++) if (x + dx >= 0 && x + dx < W && dark[y * W + x + dx]) d = 1; c += d; } return c; }
     function coverH(y, x0, x1) { let c = 0; for (let x = Math.max(0, x0); x < Math.min(W, x1); x++) { let d = 0; for (let dy = -2; dy <= 2; dy++) if (y + dy >= 0 && y + dy < H && dark[(y + dy) * W + x]) d = 1; c += d; } return c; }
     // linha vertical cruza a faixa [y0,y1]? / horizontal cruza [x0,x1]?
     const vCross = (x, y0, y1) => coverV(x, y0 + 2, y1 - 2) >= (y1 - y0 - 4) * 0.6;
     const hCross = (y, x0, x1) => coverH(y, x0 + 2, x1 - 2) >= (x1 - x0 - 4) * 0.6;
-    return { hs, vs, vCross, hCross, W, H, unit };
+    // faixa horizontal sem nada escuro (espaço entre duas tabelas)?
+    const blank = (y0, y1) => { for (let y = Math.max(0, Math.round(y0)); y < Math.min(H, Math.round(y1)); y++) { let c = 0; for (let x = 0; x < W; x++) c += dark[y * W + x]; if (c > W * 0.01) return false; } return true; };
+    const inBand = (y0, y1) => bands.some(b => (y0 + y1) / 2 > b.y0 && (y0 + y1) / 2 < b.y1);
+    return { hs, vs, vCross, hCross, blank, bands, inBand, W, H, unit };
   }
 
   // Normaliza palavras do Tesseract (data.blocks) -> [{text,x0,y0,x1,y1,conf}]
@@ -293,9 +368,30 @@
     return lines.map(L => L.ws.sort((a, b) => a.x0 - b.x0).map(w => w.text).join(" ")).join("\n");
   };
 
-  // Tabela com grade desenhada
+  // Tabela com grade desenhada. Várias tabelas empilhadas (separadas por faixa em branco) saem separadas.
   function gridToMd(words, g) {
-    const { hs, vs } = g;
+    const { hs } = g;
+    if (hs.length < 2 || g.vs.length < 2) return null;
+    const segs = [[hs[0]]];
+    for (let i = 1; i < hs.length; i++) {
+      const a = hs[i - 1], b = hs[i];
+      if (g.blank && b - a > 10 * g.unit && g.blank(a + 4 * g.unit, b - 4 * g.unit)) segs.push([b]);
+      else segs[segs.length - 1].push(b);
+    }
+    const parts = segs.filter(x => x.length >= 3);
+    if (parts.length <= 1) return gridOne(words, g, hs);
+    const out = [];
+    parts.forEach((seg, k) => {
+      const top = seg[0], bot = seg[seg.length - 1];
+      const prevBot = k ? parts[k - 1][parts[k - 1].length - 1] : -Infinity, nextTop = k < parts.length - 1 ? parts[k + 1][0] : Infinity;
+      const mine = words.filter(w => { const cy = (w.y0 + w.y1) / 2; return cy > (k ? (prevBot + top) / 2 : -Infinity) && cy <= (nextTop < Infinity ? (bot + nextTop) / 2 : Infinity); });
+      const md = gridOne(mine, g, seg) || linesText(mine);
+      if (md.trim()) out.push(md);
+    });
+    return out.join("\n\n");
+  }
+  function gridOne(words, g, hs) {
+    const { vs } = g;
     if (hs.length < 2 || vs.length < 2) return null;
     const minRow = 8 * g.unit;
     const rowsB = []; for (let i = 0; i < hs.length - 1; i++) if (hs[i + 1] - hs[i] > minRow) rowsB.push([hs[i], hs[i + 1]]);
@@ -316,7 +412,13 @@
     }
     // mesclagens horizontais: a linha vertical entre c e c+1 não cruza a linha r
     const spanH = Array.from({ length: R }, () => Array(C).fill(false)); // spanH[r][c]: c mescla com c+1
-    for (let r = 0; r < R; r++) for (let c = 0; c < C - 1; c++) spanH[r][c] = !g.vCross(colsB[c][1], rowsB[r][0], rowsB[r][1]);
+    for (let r = 0; r < R; r++) for (let c = 0; c < C - 1; c++) {
+      if (g.inBand && g.inBand(rowsB[r][0], rowsB[r][1])) { // faixa sem linhas: mescla só se um texto atravessa a divisa
+        const xb = colsB[c][1], ws = [...cells[r][c], ...cells[r][c + 1]];
+        const cut = w => { const ww = w.x1 - w.x0; return Math.min(xb - w.x0, w.x1 - xb) > Math.max(4, ww * 0.25); };
+        spanH[r][c] = ws.some(cut);
+      } else spanH[r][c] = !g.vCross(colsB[c][1], rowsB[r][0], rowsB[r][1]);
+    }
     // célula numérica: descarta lixo curto de letras (marcas, bordas)
     for (const row of cells) for (let c = 0; c < row.length; c++) {
       const ws = row[c];
@@ -333,6 +435,19 @@
     let keepR = text.map((row, r) => row.some(Boolean) ? r : -1).filter(r => r >= 0);
     const keepC = Array.from({ length: C }, (_, c) => c).filter(c => keepR.some(r => text[r][c]));
     if (keepR.length < 2 || keepC.length < 2) return null;
+    // título: 1ª linha com um único texto ocupando a largura toda (faixa mesclada) sai acima da tabela
+    let title = "";
+    if (keepR.length > 2) {
+      const r0 = keepR[0], filled0 = keepC.filter(c => text[r0][c]);
+      const allMerged = keepC.slice(0, -1).every(c => spanH[r0][c]);
+      const ws0 = cells[r0].flat().sort((a, b) => a.x0 - b.x0);
+      const hh = median(ws0.map(w => w.y1 - w.y0)) || 1;
+      const phrase = ws0.length > 0 && ws0.every((w, i) => !i || w.x0 - ws0[i - 1].x1 < hh * 0.8);
+      const nextFilled = keepC.filter(c => text[keepR[1]][c]).length;
+      if ((filled0.length === 1 && allMerged) || (phrase && g.inBand && g.inBand(rowsB[r0][0], rowsB[r0][1]) && filled0.length < nextFilled)) {
+        title = ws0.map(w => w.text).join(" "); keepR = keepR.slice(1);
+      }
+    }
     // cabeçalho: inclui linhas seguintes enquanto a anterior tiver mesclagem horizontal
     let hdr = 1;
     while (hdr < keepR.length && spanH[keepR[hdr - 1]].some(Boolean)) hdr++;
@@ -347,12 +462,39 @@
       return parts.join(" ");
     });
     const body = keepR.slice(hdr).map(r => keepC.map(c => text[r][c]));
+    for (let i = 0; i < header.length; i++) header[i] = trimJunk(header[i]);
+    for (const row of body) for (let i = 0; i < row.length; i++) row[i] = trimJunk(row[i]);
     fixNumbers(body);
+    fixUF(body);
     const out = [];
     const b = linesText(before); if (b.trim()) out.push(b);
+    if (title) out.push("**" + title + "**");
     out.push(mdTable([header, ...body]));
     const a = linesText(after); if (a.trim()) out.push(a);
     return out.join("\n\n");
+  }
+
+  // Células vazias numa coluna que tem texto na maioria das linhas: candidatas a 2ª leitura do OCR.
+  // Devolve retângulos {x0,y0,x1,y1} (px da imagem analisada).
+  function missingCells(words, g) {
+    const { hs, vs } = g;
+    if (hs.length < 3 || vs.length < 2) return [];
+    const rowsB = [], colsB = [];
+    for (let i = 0; i < hs.length - 1; i++) if (hs[i + 1] - hs[i] > 8 * g.unit && !(g.blank && g.blank(hs[i] + 4 * g.unit, hs[i + 1] - 4 * g.unit))) rowsB.push([hs[i], hs[i + 1]]);
+    for (let i = 0; i < vs.length - 1; i++) if (vs[i + 1] - vs[i] > 8 * g.unit) colsB.push([vs[i], vs[i + 1]]);
+    const has = rowsB.map(([a, b]) => colsB.map(([c, d]) => words.some(w => { const cx = (w.x0 + w.x1) / 2, cy = (w.y0 + w.y1) / 2; return cx >= c && cx < d && cy >= a && cy < b; })));
+    const out = [];
+    colsB.forEach(([c, d], k) => {
+      const n = has.filter(r => r[k]).length;
+      if (n < rowsB.length * 0.5) return;
+      rowsB.forEach(([a, b], r) => {
+        if (has[r][k] || (g.inBand && g.inBand(a, b))) return;
+        if (has[r].filter(Boolean).length < 2) return; // linha precisa ter outros dados
+        const m = Math.round(3 * g.unit);
+        out.push({ x0: c + m, y0: a + m, x1: d - m, y1: b - m });
+      });
+    });
+    return out;
   }
 
   // Tabela sem grade: colunas pelos espaços em branco alinhados
@@ -419,6 +561,34 @@
         const v = r[c] || "";
         if (/^\d+$/.test(v) && v.length > dec) r[c] = v.slice(0, -dec) + "," + v.slice(-dec);
         else if (rx.test(v)) r[c] = v.replace(rx, "$1,$2"); // 0.24 -> 0,24
+      });
+    }
+  }
+  // sobras de borda/separador grudadas no texto: "/ 5,74", "\"PESO", "234.906,24."
+  function trimJunk(t) {
+    if (!t) return t;
+    t = t.replace(/^[\/|\\"'`´“”‘’]+\s*/, "").replace(/\s*[\/|\\"'`´“”‘’]+$/, "");
+    if (/\d/.test(t)) t = t.replace(/^[—–:;.,]+\s*(?=\d)/, "").replace(/(\d)[.,:;]+$/, "$1");
+    return t.trim();
+  }
+  // coluna de siglas de estado (UF): maiúsculas e trocas típicas do OCR (Ri -> RJ, AN -> RN)
+  const UFS = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
+  const CONF = { I: "JL1", J: "I", L: "I", "1": "IJL", A: "R", R: "A", O: "0Q", "0": "O", S: "5", "5": "S", B: "8", "8": "B" };
+  function fixUF(rows) {
+    if (!rows.length) return;
+    for (let c = 0; c < rows[0].length; c++) {
+      const vals = rows.map(r => (r[c] || "").trim()).filter(Boolean);
+      if (vals.length < 3 || vals.filter(v => UFS.includes(v.toUpperCase())).length < vals.length * 0.6) continue;
+      if (!vals.every(v => /^[\p{L}\d]{2}$/u.test(v))) continue;
+      rows.forEach(r => {
+        let v = (r[c] || "").trim().toUpperCase();
+        if (!v) return;
+        if (!UFS.includes(v)) {
+          const cand = new Set();
+          for (let i = 0; i < 2; i++) for (const ch of CONF[v[i]] || "") { const t = i ? v[0] + ch : ch + v[1]; if (UFS.includes(t)) cand.add(t); }
+          if (cand.size === 1) v = [...cand][0];
+        }
+        r[c] = v;
       });
     }
   }
@@ -507,10 +677,140 @@
     return out;
   }
 
-  const api = { suggestScale, analyze, wordsFrom, gridToMd, alignedToMd, lineChars, lineSegs, ruledTables, isRule };
+  const api = { suggestScale, analyze, wordsFrom, gridToMd, missingCells, alignedToMd, lineChars, lineSegs, ruledTables, isRule };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.TableOCR = api;
 })(typeof self !== "undefined" ? self : this);
+</script>
+<script>/* sheet-md (embutido) — fonte: ~/.claude/tools/md-convert/sheet-md.cjs */
+/* sheet-md: planilhas (xlsx/xls/ods/csv) -> Markdown, usando SheetJS (XLSX).
+   Compartilhado entre a CLI (require) e o site (embutido no index.html como window.SheetMD). */
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory();
+  else root.SheetMD = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+  // Excel em português: 1,234.5 -> 1.234,5
+  const ptNum = s => s.replace(/[.,]/g, ch => (ch === "." ? "," : "."));
+  const pad = n => String(n).padStart(2, "0");
+  const esc = s => String(s).replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>").trim();
+
+  function dateText(X, v, z) {
+    const d = X.SSF.parse_date_code(v);
+    if (!d) return String(v);
+    const hasDate = /[dy]/i.test(z) || /m{1,2}[^:]*[/\-]/i.test(z) || v >= 1;
+    const hasTime = /h|s|AM\/PM/i.test(z);
+    const dt = `${pad(d.d)}/${pad(d.m)}/${d.y}`;
+    const tm = `${pad(d.H)}:${pad(d.M)}` + (/s/i.test(z) ? `:${pad(d.S)}` : "");
+    if (hasDate && hasTime) return dt + " " + tm;
+    return hasTime && !hasDate ? tm : dt;
+  }
+
+  function cellText(X, c) {
+    if (!c || c.v == null || c.v === "") return c && c.t === "e" ? (c.w || "#ERRO") : "";
+    if (c.t === "s" || c.t === "str") return esc(c.v);
+    if (c.t === "b") return c.v ? "VERDADEIRO" : "FALSO";
+    if (c.t === "e") return c.w || "#ERRO";
+    if (c.t === "d") return dateText(X, toSerial(c.v), c.z || "dd/mm/yyyy");
+    if (c.t === "n") {
+      const z = c.z || "General";
+      if (z !== "General" && X.SSF.is_date(z)) return dateText(X, c.v, z);
+      if (z === "General" || z === "@") return esc(ptNum(String(+c.v.toPrecision(15))));
+      const own = fmtNum(z, c.v);
+      if (own != null) return esc(own);
+      let s;
+      try { s = X.SSF.format(z, c.v); } catch (e) { s = String(+c.v.toPrecision(15)); }
+      return esc(ptNum(s));
+    }
+    return esc(c.w != null ? c.w : c.v);
+  }
+  // Formatos numéricos simples (#,##0.00 ; #,0.00 ; 0.000 ; "R$ "#,##0.00 ...), direto em pt-BR.
+  // Devolve null quando o formato não é simples (%, científico, fração...) para cair no SSF.
+  function splitSecs(z) {
+    const out = []; let cur = "", q = false;
+    for (let i = 0; i < z.length; i++) {
+      const ch = z[i];
+      if (ch === '"') q = !q;
+      if (ch === "\\" && !q) { cur += ch + (z[++i] || ""); continue; }
+      if (ch === ";" && !q) { out.push(cur); cur = ""; continue; }
+      cur += ch;
+    }
+    out.push(cur); return out;
+  }
+  function fmtNum(z, v) {
+    const secs = splitSecs(z);
+    let sec = secs[0], val = v;
+    if (v < 0 && secs.length > 1 && secs[1] !== "") { sec = secs[1]; val = -v; }
+    else if (v === 0 && secs.length > 2 && secs[2] !== "") sec = secs[2];
+    sec = sec.replace(/\[[^\]]*\]/g, "");
+    const lit = sec.replace(/"[^"]*"/g, "").replace(/\\./g, "").replace(/_./g, "").replace(/\*./g, "");
+    if (/[Ee/?@]/.test(lit)) return null;
+    if (lit.includes("%")) val = val * 100;
+    const m = sec.match(/[#0,]*[#0](\.[#0]*)?|\.[#0]+/);
+    if (!m) return null;
+    const core = m[0], [ip, dp = ""] = core.split(".");
+    const pre = sec.slice(0, m.index), suf = sec.slice(m.index + core.length);
+    const clean = s => s.replace(/"([^"]*)"/g, "$1").replace(/\\(.)/g, "$1").replace(/_./g, " ").replace(/\*./g, "");
+    const maxD = (dp.match(/[#0]/g) || []).length, minD = (dp.match(/0/g) || []).length;
+    const neg = val < 0; let s = Math.abs(val).toFixed(maxD);
+    // valor completo: se o formato esconde casas decimais, mostra todas (até 15 dígitos significativos)
+    const full = String(+Math.abs(val).toPrecision(15));
+    if (!/e/i.test(full) && (full.split(".")[1] || "").length > maxD) s = full;
+    let [i, d = ""] = s.split(".");
+    while (d.length > minD && d.endsWith("0")) d = d.slice(0, -1);
+    const minI = (ip.match(/0/g) || []).length;
+    if (i === "0" && minI === 0) i = "";
+    i = i.padStart(minI, "0");
+    if (ip.includes(",")) i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    const num = (i || (d ? "0" : "0")) + (d ? "," + d : "");
+    return (neg ? "-" : "") + clean(pre) + num + clean(suf);
+  }
+  function toSerial(d) { return d instanceof Date ? (d.getTime() - Date.UTC(1899, 11, 30)) / 864e5 - d.getTimezoneOffset() / 1440 : d; }
+
+  function sheetToMd(X, ws) {
+    if (!ws || !ws["!ref"]) return "_(aba vazia)_";
+    const r = X.utils.decode_range(ws["!ref"]);
+    const grid = [], kinds = [];
+    for (let R = r.s.r; R <= r.e.r; R++) {
+      const row = [], k = [];
+      for (let C = r.s.c; C <= r.e.c; C++) {
+        const c = ws[X.utils.encode_cell({ r: R, c: C })];
+        row.push(cellText(X, c)); k.push(c && c.v !== "" && c.v != null ? c.t : "");
+      }
+      grid.push({ n: R + 1, row, k });
+    }
+    const rows = grid.filter(g => g.row.some(v => v !== ""));
+    if (!rows.length) return "_(aba vazia)_";
+    const cols = [];
+    for (let i = 0; i < rows[0].row.length; i++) if (rows.some(g => g.row[i] !== "")) cols.push(i);
+    const letter = i => X.utils.encode_col(r.s.c + i);
+
+    // cabeçalho real: 1ª linha só com texto, pelo menos metade preenchida, e com dados abaixo
+    const f = rows[0], filled = cols.filter(i => f.row[i] !== "").length;
+    const isHdr = rows.length > 1 && filled >= Math.max(2, cols.length / 2) && cols.every(i => !f.k[i] || f.k[i] === "s" || f.k[i] === "str");
+    let head, body, num;
+    if (isHdr) { head = cols.map(i => f.row[i] || letter(i)); body = rows.slice(1); num = false; }
+    else { head = ["Linha", ...cols.map(letter)]; body = rows; num = true; }
+
+    // alinhar à direita colunas numéricas
+    const right = cols.map(i => { const ks = body.map(g => g.k[i]).filter(Boolean); return ks.length && ks.filter(k => k === "n").length >= ks.length * 0.6; });
+    const al = [...(num ? ["---:"] : []), ...right.map(b => (b ? "---:" : "---"))];
+    const lines = ["| " + head.join(" | ") + " |", "| " + al.join(" | ") + " |"];
+    for (const g of body) lines.push("| " + [...(num ? [g.n] : []), ...cols.map(i => g.row[i])].join(" | ") + " |");
+    return lines.join("\n");
+  }
+
+  function workbookToMd(X, wb) {
+    const names = wb.SheetNames || [];
+    const hidden = new Set(((wb.Workbook && wb.Workbook.Sheets) || []).filter(s => s.Hidden).map(s => s.name));
+    return names.map(n => {
+      const t = sheetToMd(X, wb.Sheets[n]);
+      return names.length > 1 || n !== "Sheet1" ? `## Aba: ${n}${hidden.has(n) ? " (oculta)" : ""}\n\n${t}` : t;
+    }).join("\n\n");
+  }
+
+  const EXT = /\.(xlsx|xlsm|xlsb|xls|ods|csv)$/i;
+  return { workbookToMd, sheetToMd, cellText, fmtNum, EXT };
+});
 </script>
 <script>
 (() => {
@@ -582,6 +882,20 @@
       await w.setParameters({ tessedit_pageseg_mode: hasGrid ? "11" : "3", preserve_interword_spaces: "1" });
       const { data } = await w.recognize(cv, {}, { text: true, blocks: true });
       const words = TableOCR.wordsFrom(data);
+      if (hasGrid) { // 2ª leitura das células que ficaram vazias (siglas curtas que o modo esparso perde)
+        const miss = TableOCR.missingCells(words, grid);
+        if (miss.length && miss.length <= 60) {
+          await w.setParameters({ tessedit_pageseg_mode: "7" });
+          for (const r of miss) {
+            const cw = r.x1 - r.x0, ch = r.y1 - r.y0, c2 = document.createElement("canvas");
+            c2.width = cw + 20; c2.height = ch + 20;
+            const x2 = c2.getContext("2d"); x2.fillStyle = "#fff"; x2.fillRect(0, 0, c2.width, c2.height);
+            x2.drawImage(cv, r.x0, r.y0, cw, ch, 10, 10, cw, ch);
+            const res = (await w.recognize(c2, {}, { text: true, blocks: true })).data;
+            for (const x of TableOCR.wordsFrom(res)) if (x.conf >= 30) words.push({ ...x, x0: x.x0 - 10 + r.x0, x1: x.x1 - 10 + r.x0, y0: x.y0 - 10 + r.y0, y1: x.y1 - 10 + r.y0 });
+          }
+        }
+      }
       const md = (hasGrid && TableOCR.gridToMd(words, grid)) || TableOCR.alignedToMd(words);
       if (md) return md;
       if (hasGrid) {
@@ -832,6 +1146,30 @@
     return tidy(turndown().turndown(doc.body.innerHTML));
   }
 
+  // ---------- planilhas (SheetJS carregado só quando precisa) ----------
+  let xlsxLib = null;
+  function getXLSX() {
+    if (!xlsxLib) xlsxLib = new Promise((res, rej) => {
+      const sc = document.createElement("script");
+      sc.src = abs("vendor/xlsx.full.min.js");
+      sc.onload = () => res(window.XLSX);
+      sc.onerror = () => { xlsxLib = null; rej(new Error("falha ao carregar o leitor de planilhas")); };
+      document.head.appendChild(sc);
+    });
+    return xlsxLib;
+  }
+  async function sheetToMd(file) {
+    const X = await getXLSX();
+    let wb;
+    if (/\.csv$/i.test(file.name)) {
+      const buf = await file.arrayBuffer();
+      const utf8 = new TextDecoder("utf-8").decode(buf);
+      const text = utf8.includes("�") ? new TextDecoder("windows-1252").decode(buf) : utf8.replace(/^﻿/, "");
+      wb = X.read(text, { type: "string", raw: true });
+    } else wb = X.read(await file.arrayBuffer(), { type: "array", cellNF: true });
+    return SheetMD.workbookToMd(X, wb);
+  }
+
   // ---------- pipeline ----------
   function kind(file) {
     const n = file.name.toLowerCase();
@@ -840,7 +1178,8 @@
     if (n.endsWith(".doc")) return "doc";
     if (file.type.startsWith("image/") || /\.(png|jpe?g|webp|bmp|gif|tiff?)$/.test(n)) return "img";
     if (/\.html?$/.test(n)) return "html";
-    if (/\.(txt|md|markdown|csv)$/.test(n) || file.type.startsWith("text/")) return "txt";
+    if (SheetMD.EXT.test(n)) return "sheet";
+    if (/\.(txt|md|markdown)$/.test(n) || file.type.startsWith("text/")) return "txt";
     return null;
   }
 
@@ -872,6 +1211,7 @@
       else if (k === "docx") md = await docxToMd(file);
       else if (k === "img") md = await ocrImage(file, (p, s) => progress(p, p != null ? `OCR · ${Math.round(p * 100)}%` : s));
       else if (k === "html") md = await htmlToMd(file);
+      else if (k === "sheet") md = await sheetToMd(file);
       else if (k === "txt") md = file.name.toLowerCase().endsWith(".md") ? (await file.text()).trim() : textToMd(await file.text());
       else if (k === "doc") throw new Error("Word antigo (.doc) não é suportado — salve como .docx");
       else throw new Error("formato não suportado");
