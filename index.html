@@ -1164,7 +1164,7 @@
     if (/\.csv$/i.test(file.name)) {
       const buf = await file.arrayBuffer();
       const utf8 = new TextDecoder("utf-8").decode(buf);
-      const text = utf8.includes("�") ? new TextDecoder("windows-1252").decode(buf) : utf8.replace(/^﻿/, "");
+      const text = utf8.includes("\uFFFD") ? new TextDecoder("windows-1252").decode(buf) : utf8.replace(/^\uFEFF/, "");
       wb = X.read(text, { type: "string", raw: true });
     } else wb = X.read(await file.arrayBuffer(), { type: "array", cellNF: true });
     return SheetMD.workbookToMd(X, wb);
