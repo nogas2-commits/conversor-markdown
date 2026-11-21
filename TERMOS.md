@@ -1,6 +1,6 @@
 # Conversor para Markdown: termos de uso e privacidade
 
-Última atualização: 20/11/2026 (versão 1.6)
+Última atualização: 21/11/2026 (versão 1.8)
 
 Responsável: **E-VERSATIL ASSESSORIA TREINAMENTOS E EVENTOS LTDA** ("nós").
 
@@ -39,7 +39,8 @@ Você é responsável:
 ## 7. Privacidade
 
 - **Seus arquivos não saem do seu computador.** A conversão roda no navegador; nada é enviado para nós nem para terceiros, e nada fica guardado depois que você fecha a página.
-- **Não coletamos dados pessoais.** O conversor não pede cadastro e não usa cookies, rastreadores ou ferramentas de estatística.
+- **Não coletamos dados pessoais.** O conversor não pede cadastro e não usa cookies nem rastreadores.
+- **Contagem anônima de uso.** Para saber quanto o conversor é usado, a cada conversão concluída a página avisa o serviço [GoatCounter](https://www.goatcounter.com/) apenas do tipo de arquivo convertido (por exemplo, "pdf" ou "imagem"). Não são enviados o arquivo, o nome dele nem o conteúdo. O GoatCounter não usa cookies e não guarda o endereço IP; o resultado é só um total de conversões por dia e por tipo.
 - **Hospedagem.** A página é hospedada no GitHub Pages (GitHub, Inc.), que pode registrar dados técnicos de acesso, como endereço IP, para segurança e funcionamento do serviço. Esse tratamento segue a política de privacidade do GitHub: https://docs.github.com/pt/site-policy/privacy-policies/github-general-privacy-statement
 
 ## 8. Código e licença

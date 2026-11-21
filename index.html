@@ -117,14 +117,14 @@
       <p class="note">Tokens ≈ caracteres ÷ 4 (estimativa). PDFs com texto são extraídos direto; páginas sem texto passam por OCR automaticamente. Word antigo (.doc) não é suportado — salve como .docx.</p>
     </section>
   </div>
-  <footer class="ver">Conversor para Markdown · <strong>versão 1.7</strong> · atualizado em 20/11/2026 · prints de tabela mais precisos (fonte suavizada, fundo cinza, moldura escura)<br>
+  <footer class="ver">Conversor para Markdown · <strong>versão 1.8</strong> · atualizado em 21/11/2026 · contagem anônima de uso (só o tipo de arquivo; nada do conteúdo sai do computador)<br>
     © 2026 E-VERSATIL ASSESSORIA TREINAMENTOS E EVENTOS LTDA · <a href="#termos" id="abrirTermos">Termos e privacidade</a></footer>
 </div>
 
 <dialog class="termos" id="termos" aria-labelledby="termosTit">
   <div class="tb"><h2 id="termosTit">Termos de uso e privacidade</h2><button class="b" id="fecharTermos">Fechar</button></div>
   <div class="tx">
-    <p>Última atualização: 20/11/2026 (versão 1.6). Responsável: <strong>E-VERSATIL ASSESSORIA TREINAMENTOS E EVENTOS LTDA</strong> ("nós").</p>
+    <p>Última atualização: 21/11/2026 (versão 1.8). Responsável: <strong>E-VERSATIL ASSESSORIA TREINAMENTOS E EVENTOS LTDA</strong> ("nós").</p>
     <h3>1. O que é</h3>
     <p>O Conversor para Markdown é uma ferramenta gratuita que transforma arquivos PDF, Word (.docx), planilhas (.xlsx, .csv) e imagens com texto em Markdown. Toda a conversão acontece no seu próprio navegador.</p>
     <h3>2. Aceite</h3>
@@ -147,7 +147,8 @@
     <h3>7. Privacidade</h3>
     <ul>
       <li><strong>Seus arquivos não saem do seu computador.</strong> A conversão roda no navegador; nada é enviado para nós nem para terceiros, e nada fica guardado depois que você fecha a página.</li>
-      <li><strong>Não coletamos dados pessoais.</strong> O conversor não pede cadastro e não usa cookies, rastreadores ou ferramentas de estatística.</li>
+      <li><strong>Não coletamos dados pessoais.</strong> O conversor não pede cadastro e não usa cookies nem rastreadores.</li>
+      <li><strong>Contagem anônima de uso.</strong> Para saber quanto o conversor é usado, a cada conversão concluída a página avisa o serviço <a href="https://www.goatcounter.com/" target="_blank" rel="noopener">GoatCounter</a> apenas do tipo de arquivo convertido (por exemplo, "pdf" ou "imagem"). Não são enviados o arquivo, o nome dele nem o conteúdo. O GoatCounter não usa cookies e não guarda o endereço IP; o resultado é só um total de conversões por dia e por tipo.</li>
       <li><strong>Hospedagem.</strong> A página é hospedada no GitHub Pages (GitHub, Inc.), que pode registrar dados técnicos de acesso, como endereço IP, para segurança e funcionamento do serviço. Esse tratamento segue a <a href="https://docs.github.com/pt/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">política de privacidade do GitHub</a>.</li>
     </ul>
     <h3>8. Código e licença</h3>
@@ -1259,6 +1260,17 @@
     }
   }
 
+  // Contagem anônima de uso (GoatCounter): só envia o tipo de arquivo convertido,
+  // nunca o arquivo, o nome ou o conteúdo. Conta apenas no site publicado.
+  const GC_CODE = "conversor-markdown";
+  function countUse(k) {
+    try {
+      if (!location.hostname.endsWith("github.io")) return;
+      k = { img: "imagem", docx: "word", sheet: "planilha", txt: "texto" }[k] || k;
+      new Image().src = `https://${GC_CODE}.goatcounter.com/count?p=${encodeURIComponent("/conversao/" + k)}&t=${encodeURIComponent("Conversão " + k)}&e=true&rnd=${Math.random().toString(36).slice(2)}`;
+    } catch (e) {}
+  }
+
   async function convert(file, id, progress, st, bar) {
     const k = kind(file);
     const t0 = performance.now();
@@ -1281,6 +1293,7 @@
       st.textContent = `pronto · ${fmt(md.length)} caracteres · ~${fmt(Math.ceil(md.length / 4))} tokens · ${secs}s`;
       st.className = "st done";
       render();
+      countUse(k);
     } catch (e) {
       console.error(e);
       st.textContent = "erro: " + (e && e.message || e);
